@@ -1,0 +1,16 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.stats import norm
+# Define the range of x values
+x = np.linspace(-4, 4, 1000)
+# Compute the y values for the standard normal distribution
+y = norm.pdf(x, 0, 1)  # mean=0, standard deviation=1
+# Plot the standard normal distribution
+plt.figure(figsize=(8, 6))
+plt.plot(x, y, label='Standard Normal Distribution', color='blue')
+plt.title('Standard Normal Distribution')
+plt.xlabel('x')
+plt.ylabel('Probability Density')
+plt.grid(True)
+plt.legend()
+plt.show()
