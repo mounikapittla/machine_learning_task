@@ -1,0 +1,106 @@
+import tensorflow as tf
+from tensorflow.keras import layers, models
+from tensorflow.keras.datasets import mnist
+import matplotlib.pyplot as plt
+
+# Load and preprocess the data
+(x_train, y_train), (x_test, y_test) = mnist.load_data()
+x_train, x_test = x_train / 255.0, x_test / 255.0
+x_train = x_train.reshape(-1, 28 * 28)
+x_test = x_test.reshape(-1, 28 * 28)
+
+# Define a function to create MLP models with different optimizers and regularizations
+def create_mlp_model(optimizer='adam', regularization=None, dropout_rate=0.0):
+    model = models.Sequential()
+    model.add(layers.Input(shape=(28 * 28,)))
+    model.add(layers.Dense(128, activation='relu', kernel_regularizer=regularization))
+    if dropout_rate > 0:
+        model.add(layers.Dropout(dropout_rate))
+    model.add(layers.Dense(64, activation='relu', kernel_regularizer=regularization))
+    if dropout_rate > 0:
+        model.add(layers.Dropout(dropout_rate))
+    model.add(layers.Dense(10, activation='softmax'))
+    model.compile(optimizer=optimizer, loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+    return model
+
+# Function to train and evaluate a model
+def train_and_evaluate(model, x_train, y_train, x_test, y_test, epochs=5):
+    history = model.fit(
+        x_train, y_train,
+        epochs=epochs,
+        batch_size=32,
+        validation_split=0.1,
+        verbose=2
+    )
+    
+    test_loss, test_accuracy = model.evaluate(x_test, y_test, verbose=2)
+    return history, test_loss, test_accuracy
+
+# Experiment with different optimizers
+optimizers = ['sgd', 'rmsprop', 'adam', 'adagrad']
+results = {}
+
+for opt in optimizers:
+    print(f"Training with optimizer: {opt}")
+    model = create_mlp_model(optimizer=opt)
+    history, loss, accuracy = train_and_evaluate(model, x_train, y_train, x_test, y_test)
+    results[opt] = (history, loss, accuracy)
+
+# Experiment with regularization techniques
+
+# L2 Regularization
+from tensorflow.keras import regularizers
+l2_regularization = regularizers.l2(0.01)
+
+# Model with L2 Regularization
+model_l2 = create_mlp_model(optimizer='adam', regularization=l2_regularization)
+history_l2, loss_l2, accuracy_l2 = train_and_evaluate(model_l2, x_train, y_train, x_test, y_test)
+
+# Model with Dropout
+model_dropout = create_mlp_model(optimizer='adam', dropout_rate=0.2)
+history_dropout, loss_dropout, accuracy_dropout = train_and_evaluate(model_dropout, x_train, y_train, x_test, y_test)
+
+# Plotting results
+def plot_history(histories, title):
+    plt.figure(figsize=(12, 8))
+    for name, history in histories.items():
+        plt.plot(history.history['accuracy'], label=f'{name} - Train Accuracy')
+        plt.plot(history.history['val_accuracy'], label=f'{name} - Validation Accuracy')
+    plt.title(title)
+    plt.xlabel('Epoch')
+    plt.ylabel('Accuracy')
+    plt.legend()
+    plt.show()
+
+def plot_loss(histories, title):
+    plt.figure(figsize=(12, 8))
+    for name, history in histories.items():
+        plt.plot(history.history['loss'], label=f'{name} - Train Loss')
+        plt.plot(history.history['val_loss'], label=f'{name} - Validation Loss')
+    plt.title(title)
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.legend()
+    plt.show()
+
+# Collect histories
+optim_histories = {
+    'SGD': results['sgd'][0],
+    'RMSprop': results['rmsprop'][0],
+    'Adam': results['adam'][0],
+    'Adagrad': results['adagrad'][0]
+}
+
+# Plot accuracy and loss
+plot_history(optim_histories, 'Model Accuracy with Different Optimizers')
+plot_loss(optim_histories, 'Model Loss with Different Optimizers')
+
+# Collect histories for regularization
+reg_histories = {
+    'L2 Regularization': history_l2,
+    'Dropout': history_dropout
+}
+
+# Plot accuracy and loss for regularization
+plot_history(reg_histories, 'Model Accuracy with Regularization Techniques')
+plot_loss(reg_histories, 'Model Loss with Regularization Techniques')
